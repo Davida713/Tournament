@@ -11,12 +11,15 @@ def connect():
     db = psycopg2.connect("dbname=tournament")
     c = db.cursor()
     return psycopg2.connect("dbname=tournament")
+    db.close()
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
     db = psycopg2.connect("dbname=tournament")
     c = db.cursor()
+    c.execute("SELECT * FROM matches;")
+    print c.fetchall()
     c.execute("DELETE FROM matches;")
     db.close()
 
@@ -78,8 +81,6 @@ def playerStandings():
 
     db = psycopg2.connect("dbname=tournament")
     c = db.cursor()
-    c.execute("CREATE VIEW wins as SELECT players.playerid, CASE WHEN count(matches.winner) is NULL THEN 0 ELSE count(matches.winner) END as wnum FROM matches right join players on matches.winner = players.playerid group by players.playerid")
-    c.execute("CREATE VIEW loses as SELECT players.playerid, CASE WHEN count(matches.loser) is NULL THEN 0 ELSE count(matches.loser) END as lnum FROM matches right join players on matches.loser = players.playerid group by players.playerid")
     c.execute("SELECT players.playerid, players.name, wins.wnum as wins, (loses.lnum + wins.wnum) as matches FROM players left join matches on players.playerid = matches.winner left join wins on wins.playerid = players.playerid left join loses on loses.playerid = players.playerid")
     results = c.fetchall()
     print 
@@ -120,23 +121,17 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+
     db = psycopg2.connect("dbname=tournament")
     c = db.cursor()
-    c.execute("CREATE VIEW tmatch as SELECT players.playerid, players.name, CASE WHEN count(matches.winner) is NULL THEN 0 ELSE count(matches.winner) END as wnum FROM matches right join players on matches.winner = players.playerid group by players.playerid ORDER BY wnum DESC")
-    
-    c.execute("SELECT a.playerid, a.name, b.playerid, b.name FROM tmatch as a, tmatch as b WHERE a.wnum = b.wnum and a.playerid > b.playerid")
-    #c.execute("SELECT count(*) FROM tmatch")
-    #tplayers = c.fetchall()
-    #pairs = []
-    #for row in rows:
-        #pair = (playerid1, name)
+    c.execute("SELECT playerid, name FROM win_num")
     rows = c.fetchall()
-    print rows
-    for row in rows:
-        return row[0]
-        return row[1]
-    #results = c.fetchall()
-    #return results
+    pairs = []
+    i=0
+    for row in rows[0::2]:
+        pairs.append((rows[i][0],rows[i][1],rows[i+1][0],rows[i+1][1]))
+        i = i + 2
+    print pairs
+    return pairs
     db.close()
-
 
